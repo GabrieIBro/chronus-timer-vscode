@@ -1,30 +1,66 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
-
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 
 /**
  * @param {vscode.ExtensionContext} context
- */
+ */	
+let myStatusBarItem;
+
 function activate(context) {
+    myStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1);
+    context.subscriptions.push(myStatusBarItem);
 
-	let myStatusBarItem = vscode.StatusBarItem;
+	let running = false;
+	let seconds = 0;
+	let minutes = 0;
+	let hours = 0;
 
-	console.log('Congratulations, your extension "coding-time" is now active!');
+	let startTimer = vscode.commands.registerCommand('coding-time.startTimer', function () {
+		let time;			
+		running = true;
+		
+		const timer = setInterval(() => {
+			
+			if(running) {
+				if(seconds === 60){
+					minutes++;
+					seconds = 0;
+				}
+		
+				if(minutes === 60){
+					hours++;
+					minutes = 0;
+				}
+		
+				time = (((hours < 10) ? '0' : '') + hours + 'h ') 
+					+  (((minutes < 10) ? '0' : '') + minutes + 'm ') 
+					+  (((seconds < 10) ? '0' : '') + seconds + 's');
+	
+				updateStatusBar(time)
+	
+				seconds += 1;			
+			}
+			else {
+				clearInterval(timer)
+			}
+		}, 1000)
 
-
-	let disposable = vscode.commands.registerCommand('coding-time.startTimer', function () {
-		// The code you place here will be executed every time your command is executed
-
-		vscode.window.showInformationMessage('Hello World from coding-time!');
+		context.subscriptions.push(startTimer);
 	});
 
-	context.subscriptions.push(disposable);
+	let stopTimer = vscode.commands.registerCommand('coding-time.pauseTimer', function() {
+		running = false;
+
+		context.subscriptions.push(pauseTimer);
+	})
 }
 
-// This method is called when your extension is deactivated
+function updateStatusBar(time) {
+	myStatusBarItem.text = `$(debug-pause) ${time}`;
+	myStatusBarItem.show();
+
+}
+
+
 function deactivate() {}
 
 module.exports = {

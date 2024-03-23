@@ -2,7 +2,7 @@
   "name": "coding-time",
   "displayName": "coding-time",
   "description": "A tool to help you keep track of how much time you spent coding.",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -15,7 +15,12 @@
     "commands": [{
       "command": "coding-time.startTimer",
       "title": "Start Timer"
-    }]
+    },
+    {
+      "command": "coding-time.pauseTimer",
+      "title": "Stop Timer"
+    }
+  ]
   },
   "scripts": {
     "lint": "eslint .",
