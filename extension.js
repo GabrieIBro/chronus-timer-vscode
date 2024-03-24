@@ -16,10 +16,16 @@ function activate(context) {
 	let hours = 0;
 	let time;			
 
-	
+	let configuration = vscode.workspace.getConfiguration('code-timer');
+	configuration.update("pauseTimerWhenUnfocused", true, vscode.ConfigurationTarget.Global);
+
+	let pauseWhenUnfocused = configuration.get("pauseTimerWhenUnfocused");
+
+
 	let startTimer = vscode.commands.registerCommand('code-timer.startTimer', function () {
 		timerIsRunning = true;
-		
+
+
 		const timer = setInterval(() => {
 			
 			if(timerIsRunning) {
@@ -40,7 +46,7 @@ function activate(context) {
 	
 				updateStatusBar(time, '$(debug-pause)', "code-timer.pauseTimer", "pause");
 	
-				seconds += 1;			
+				seconds += 1;	
 			}
 			else {
 				clearInterval(timer)
@@ -59,6 +65,20 @@ function activate(context) {
 	})
 
 	vscode.commands.executeCommand("code-timer.startTimer");
+
+	if(pauseWhenUnfocused) {
+		vscode.window.onDidChangeWindowState(event => {
+			console.log(event);
+			if(!event.focused) {
+				vscode.commands.executeCommand("code-timer.pauseTimer")
+			}
+			
+			if(event.focused && !timerIsRunning) {
+				vscode.commands.executeCommand("code-timer.startTimer");
+				console.log("StartTimer executed")
+			}
+		})
+	}
 }
 
 function updateStatusBar(time, icon='$(debug-pause)', buttonCommand, tooltipText) {
