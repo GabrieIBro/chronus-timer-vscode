@@ -1,6 +1,6 @@
 {
-  "name": "coding-time",
-  "displayName": "coding-time",
+  "name": "coding-timer",
+  "displayName": "Coding Timer",
   "description": "A tool to help you keep track of how much time you spent coding.",
   "version": "1.0.0",
   "engines": {
@@ -9,15 +9,15 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": ["onStartupFinished"],
   "main": "./extension.js",
   "contributes": {
     "commands": [{
-      "command": "coding-time.startTimer",
+      "command": "coding-timer.startTimer",
       "title": "Start Timer"
     },
     {
-      "command": "coding-time.pauseTimer",
+      "command": "coding-timer.pauseTimer",
       "title": "Stop Timer"
     }
   ]

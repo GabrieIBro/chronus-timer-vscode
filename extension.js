@@ -9,18 +9,21 @@ function activate(context) {
     myStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1);
     context.subscriptions.push(myStatusBarItem);
 
-	let running = false;
+	let timerIsRunning = false;
+
 	let seconds = 0;
 	let minutes = 0;
 	let hours = 0;
+	let time;			
 
-	let startTimer = vscode.commands.registerCommand('coding-time.startTimer', function () {
-		let time;			
-		running = true;
+	
+	let startTimer = vscode.commands.registerCommand('coding-timer.startTimer', function () {
+		timerIsRunning = true;
 		
 		const timer = setInterval(() => {
 			
-			if(running) {
+			if(timerIsRunning) {
+				
 				if(seconds === 60){
 					minutes++;
 					seconds = 0;
@@ -35,7 +38,7 @@ function activate(context) {
 					+  (((minutes < 10) ? '0' : '') + minutes + 'm ') 
 					+  (((seconds < 10) ? '0' : '') + seconds + 's');
 	
-				updateStatusBar(time)
+				updateStatusBar(time, '$(debug-pause)', "coding-timer.pauseTimer", "pause");
 	
 				seconds += 1;			
 			}
@@ -47,17 +50,23 @@ function activate(context) {
 		context.subscriptions.push(startTimer);
 	});
 
-	let stopTimer = vscode.commands.registerCommand('coding-time.pauseTimer', function() {
-		running = false;
+
+	let pauseTimer = vscode.commands.registerCommand('coding-timer.pauseTimer', function() {
+		timerIsRunning = false;
+		updateStatusBar(time, '$(debug-start)', "coding-timer.startTimer", "start");
 
 		context.subscriptions.push(pauseTimer);
 	})
+
+	vscode.commands.executeCommand("coding-timer.startTimer");
 }
 
-function updateStatusBar(time) {
-	myStatusBarItem.text = `$(debug-pause) ${time}`;
+function updateStatusBar(time, icon='$(debug-pause)', buttonCommand, tooltipText) {
+	myStatusBarItem.text = `${icon} ${time}`;
 	myStatusBarItem.show();
-
+	myStatusBarItem.command = buttonCommand;
+	myStatusBarItem.tooltip = `Click to ${tooltipText}`;
+	myStatusBarItem.accessibilyInfomation = time;
 }
 
 
