@@ -22,6 +22,10 @@
       {
         "command": "code-timer.pauseTimer",
         "title": "Stop Timer"
+      },
+      {
+        "command": "code-timer.showTimerLog",
+        "title": "Show Timer Log"
       }
     ],
     "configuration": [
