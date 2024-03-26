@@ -17,33 +17,27 @@ function activate(context) {
 
     myStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1);
 
-	let configuration = vscode.workspace.getConfiguration('code-timer');
-	configuration.update("pauseTimerWhenUnfocused", true, vscode.ConfigurationTarget.Global);
-
-	let pauseWhenUnfocused = configuration.get("pauseTimerWhenUnfocused");
+	let configuration;
+	let pauseWhenUnfocused;
 
 	let currentDate = {"day":date.getDate(), "month": date.getMonth(), "year":date.getFullYear()}
 	let dateTemplate = `${currentDate.day}/${currentDate.month}/${currentDate.year}`;
 
-	// Verify if session count is already stored. If already stored, increment by 1 on every activate.
-	let currentDateObj = context.globalState.get(dateTemplate) || {};
-	if(!currentDateObj.sessions) {currentDateObj.sessions = 0}; 
-	currentDateObj.sessions++;
 
-	let session = currentDateObj.sessions;
-	console.log(session)
-
-	context.globalState.update(dateTemplate, {...currentDateObj});
-
+	let currentDateArray = context.globalState.get(dateTemplate) || [];
+	currentDateArray.push('Placeholder');
+	context.globalState.update(dateTemplate, [...currentDateArray]);
+ 
+	let session = currentDateArray.length;
+	
 	let startTimer = vscode.commands.registerCommand('code-timer.startTimer', function () {
 		timerIsRunning = true;
 
 		const timer = setInterval(() => {
-			// console.log(context.globalState.f);
-			let sessionList = context.globalState.get(dateTemplate) || {};
-			sessionList[`Session ${session}`] = time;
-			context.globalState.update(dateTemplate, {...sessionList})
-			console.log(context.globalState.f)
+			let sessionList = context.globalState.get(dateTemplate) || [];
+			sessionList[session - 1] = time;
+
+			context.globalState.update(dateTemplate, [...sessionList])
 
 			if(date.getDate() !== currentDate.day) {
 				currentDate = {"day":date.getDate(), "month": date.getMonth(), "year":date.getFullYear()}
@@ -83,27 +77,56 @@ function activate(context) {
 
 	})
 
-	let showTimerLog = vscode.commands.registerCommand('code-timer.showTimerLog', () => {
+	let showTimerLog = vscode.commands.registerCommand('code-timer.showTimerLog', function() {
 		let webViewElement = vscode.window.createWebviewPanel('string', 'Work Log', vscode.ViewColumn);
-		webViewElement.webview.html = `<p>${time}</p>`;
+
+		let keys = context.globalState.keys();
+		let htmlContent = "";
+
+		keys.forEach(key => {
+			htmlContent += `
+			<div>
+				<h1>${[key]}</h1>
+			</div>
+							`
+			context.globalState.get(key).forEach((el, index) => {
+				htmlContent += `
+				<div>
+					<ul><li>Session ${[index + 1]}: ${[el]}</li></ul>
+				</div>
+								`
+			})
+		});
+
+		webViewElement.webview.html = htmlContent;
 		webViewElement.visible = true;
 		
 	})
 
 	vscode.commands.executeCommand("code-timer.startTimer");
 
-	if(pauseWhenUnfocused) {
-		vscode.window.onDidChangeWindowState(event => {
-			if(!event.focused) {
-				vscode.commands.executeCommand("code-timer.pauseTimer")
-			}
+	vscode.workspace.onDidChangeConfiguration(() => {
+		configuration = vscode.workspace.getConfiguration('code-timer');
+		pauseWhenUnfocused = configuration.get("pauseTimerWhenUnfocused");
+		let listener;
 
-			if(event.focused && !timerIsRunning) {
-				vscode.commands.executeCommand("code-timer.startTimer");
+		listener = vscode.window.onDidChangeWindowState((event) => {
+			if(pauseWhenUnfocused) {
+
+				if(!event.focused) {
+					vscode.commands.executeCommand("code-timer.pauseTimer")
+				}
+				if(event.focused && !timerIsRunning) {
+					vscode.commands.executeCommand("code-timer.startTimer");
+				}
+			}
+			else {
+				listener.dispose();
 			}
 		})
-	}
+	})
 
+	
 	context.subscriptions.push(startTimer);
 	context.subscriptions.push(pauseTimer);
 	context.subscriptions.push(myStatusBarItem);
