@@ -1,6 +1,5 @@
 const vscode = require('vscode');
 
-
 /**
  * @param {vscode.ExtensionContext} context
  */	
@@ -140,7 +139,6 @@ function updateStatusBar(time, icon='$(debug-pause)', buttonCommand, tooltipText
 	myStatusBarItem.tooltip = `Click to ${tooltipText}`;
 	myStatusBarItem.accessibilyInfomation = time;
 }
-
 
 
 function deactivate() {}
