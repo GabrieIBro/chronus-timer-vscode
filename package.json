@@ -1,8 +1,9 @@
 {
-  "name": "code-timer",
-  "displayName": "CodeTimer",
+  "name": "chronus-timer",
+  "displayName": "Chronus",
   "description": "A tool to help you keep track of how much time you spent coding.",
   "version": "1.0.0",
+  "icon": "./images/timer.png",
   "engines": {
     "vscode": "^1.87.0"
   },
@@ -16,15 +17,15 @@
   "contributes": {
     "commands": [
       {
-        "command": "code-timer.startTimer",
+        "command": "chronus.startTimer",
         "title": "Start Timer"
       },
       {
-        "command": "code-timer.pauseTimer",
+        "command": "chronus.pauseTimer",
         "title": "Stop Timer"
       },
       {
-        "command": "code-timer.showTimerLog",
+        "command": "chronus.showTimerLog",
         "title": "Show Timer Log"
       }
     ],
@@ -32,7 +33,7 @@
       {
         "title": "CodeTimer",
         "properties": {
-          "code-timer.pauseTimerWhenUnfocused": {
+          "chronus.pauseTimerWhenUnfocused": {
             "type": "boolean",
             "default": true,
             "description": "Pause the timer when VSCode window is out of focus"

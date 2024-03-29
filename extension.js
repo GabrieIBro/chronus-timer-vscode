@@ -29,7 +29,7 @@ function activate(context) {
  
 	let session = currentDateArray.length;
 	
-	let startTimer = vscode.commands.registerCommand('code-timer.startTimer', function () {
+	let startTimer = vscode.commands.registerCommand('chronus.startTimer', function () {
 		timerIsRunning = true;
 
 		const timer = setInterval(() => {
@@ -59,7 +59,7 @@ function activate(context) {
 					+  (((minutes < 10) ? '0' : '') + minutes + 'm ') 
 					+  (((seconds < 10) ? '0' : '') + seconds + 's');
 	
-				updateStatusBar(time, '$(debug-pause)', "code-timer.pauseTimer", "pause");
+				updateStatusBar(time, '$(debug-pause)', "chronus.pauseTimer", "pause");
 	
 				seconds += 1;	
 			}
@@ -70,13 +70,13 @@ function activate(context) {
 
 	});
 
-	let pauseTimer = vscode.commands.registerCommand('code-timer.pauseTimer', function() {
+	let pauseTimer = vscode.commands.registerCommand('chronus.pauseTimer', function() {
 		timerIsRunning = false;
-		updateStatusBar(time, '$(debug-start)', "code-timer.startTimer", "start");
+		updateStatusBar(time, '$(debug-start)', "chronus.startTimer", "start");
 
 	})
 
-	let showTimerLog = vscode.commands.registerCommand('code-timer.showTimerLog', function() {
+	let showTimerLog = vscode.commands.registerCommand('chronus.showTimerLog', function() {
 		let webViewElement = vscode.window.createWebviewPanel('string', 'Work Log', vscode.ViewColumn);
 
 		let keys = context.globalState.keys();
@@ -102,10 +102,10 @@ function activate(context) {
 		
 	})
 
-	vscode.commands.executeCommand("code-timer.startTimer");
+	vscode.commands.executeCommand("chronus.startTimer");
 
 	vscode.workspace.onDidChangeConfiguration(() => {
-		configuration = vscode.workspace.getConfiguration('code-timer');
+		configuration = vscode.workspace.getConfiguration('chronus');
 		pauseWhenUnfocused = configuration.get("pauseTimerWhenUnfocused");
 		let listener;
 
@@ -113,10 +113,10 @@ function activate(context) {
 			if(pauseWhenUnfocused) {
 
 				if(!event.focused) {
-					vscode.commands.executeCommand("code-timer.pauseTimer")
+					vscode.commands.executeCommand("chronus.pauseTimer")
 				}
 				if(event.focused && !timerIsRunning) {
-					vscode.commands.executeCommand("code-timer.startTimer");
+					vscode.commands.executeCommand("chronus.startTimer");
 				}
 			}
 			else {
