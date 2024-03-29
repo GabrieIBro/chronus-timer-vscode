@@ -1,29 +1,14 @@
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+There are tons of other extensions like this on VSCode, except this one includes a functionality I didn't find in any other(I actually didn't test many of them :D), the extension can detect if the editor window loses focus and pause the timer automatically.
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+chronus.pauseTimerWhenUnfocused: If this option is checked, the timer will pause automatically when VSCode is out focus.
 
-For example:
+## Extension Functions
 
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
+Start Timer
+Stop Timer
+Show Timer Log
 
