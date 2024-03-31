@@ -6,33 +6,34 @@ const vscode = require('vscode');
 let myStatusBarItem;
 let timerIsRunning = false;
 
+let timer;
 let seconds = 0;
 let minutes = 0;
 let hours = 0;
 let time;			
 let date = new Date;
+let instances;
 
 function activate(context) {
 
     myStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1);
 
 	let configuration;
-	let pauseWhenUnfocused;
+	let pauseWhenUnfocused = true;
 
-	let currentDate = {"day":date.getDate(), "month": date.getMonth(), "year":date.getFullYear()}
+	let currentDate = {"day":date.getDate(), "month": date.getMonth() + 1, "year":date.getFullYear()}
 	let dateTemplate = `${currentDate.day}/${currentDate.month}/${currentDate.year}`;
-
 
 	let currentDateArray = context.globalState.get(dateTemplate) || [];
 	currentDateArray.push('Placeholder');
 	context.globalState.update(dateTemplate, [...currentDateArray]);
- 
+
 	let session = currentDateArray.length;
 	
 	let startTimer = vscode.commands.registerCommand('chronus.startTimer', function () {
 		timerIsRunning = true;
 
-		const timer = setInterval(() => {
+		timer = setInterval(() => {
 			let sessionList = context.globalState.get(dateTemplate) || [];
 			sessionList[session - 1] = time;
 
@@ -63,9 +64,7 @@ function activate(context) {
 	
 				seconds += 1;	
 			}
-			else {
-				clearInterval(timer)
-			}
+
 		}, 1000)
 
 	});
@@ -73,28 +72,34 @@ function activate(context) {
 	let pauseTimer = vscode.commands.registerCommand('chronus.pauseTimer', function() {
 		timerIsRunning = false;
 		updateStatusBar(time, '$(debug-start)', "chronus.startTimer", "start");
-
+		clearInterval(timer);
 	})
 
 	let showTimerLog = vscode.commands.registerCommand('chronus.showTimerLog', function() {
-		let webViewElement = vscode.window.createWebviewPanel('string', 'Work Log', vscode.ViewColumn);
+		let webViewElement = vscode.window.createWebviewPanel('string', 'Work Log', vscode.ViewColumn.One);
 
 		let keys = context.globalState.keys();
 		let htmlContent = "";
 
 		keys.forEach(key => {
-			htmlContent += `
-			<div>
-				<h1>${[key]}</h1>
-			</div>
-							`
-			context.globalState.get(key).forEach((el, index) => {
+
+			if(key.includes('/')) {
+				htmlContent += `
+				<div>
+					<h1>${[key]}</h1>
+				</div>
+								`;
+
+				context.globalState.get(key).forEach((el, index) => {
+				console.log(el)
 				htmlContent += `
 				<div>
 					<ul><li>Session ${[index + 1]}: ${[el]}</li></ul>
 				</div>
-								`
+								`;
 			})
+			}
+			
 		});
 
 		webViewElement.webview.html = htmlContent;
@@ -103,28 +108,24 @@ function activate(context) {
 	})
 
 	vscode.commands.executeCommand("chronus.startTimer");
-
 	vscode.workspace.onDidChangeConfiguration(() => {
 		configuration = vscode.workspace.getConfiguration('chronus');
-		pauseWhenUnfocused = configuration.get("pauseTimerWhenUnfocused");
-		let listener;
+		pauseWhenUnfocused = configuration.get("pauseTimerWhenUnfocused");				
+	});
 
-		listener = vscode.window.onDidChangeWindowState((event) => {
-			if(pauseWhenUnfocused) {
-
-				if(!event.focused) {
-					vscode.commands.executeCommand("chronus.pauseTimer")
-				}
-				if(event.focused && !timerIsRunning) {
-					vscode.commands.executeCommand("chronus.startTimer");
-				}
+	let listener = vscode.window.onDidChangeWindowState((event) => {
+		if(pauseWhenUnfocused) {
+			if(!event.focused && timerIsRunning) {
+				vscode.commands.executeCommand("chronus.pauseTimer")
 			}
-			else {
-				listener.dispose();
+			else if(event.focused && !timerIsRunning) {
+				vscode.commands.executeCommand("chronus.startTimer");
 			}
-		})
+		}
+		else {
+			listener.dispose();
+		}
 	})
-
 	
 	context.subscriptions.push(startTimer);
 	context.subscriptions.push(pauseTimer);
@@ -139,7 +140,6 @@ function updateStatusBar(time, icon='$(debug-pause)', buttonCommand, tooltipText
 	myStatusBarItem.tooltip = `Click to ${tooltipText}`;
 	myStatusBarItem.accessibilyInfomation = time;
 }
-
 
 function deactivate() {}
 

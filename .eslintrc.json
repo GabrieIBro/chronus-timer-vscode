@@ -7,7 +7,7 @@
 		"mocha": true
 	},
 	"parserOptions": {
-		"ecmaVersion": 2018,
+		"ecmaVersion": "latest",
 		"ecmaFeatures": {
 			"jsx": true
 		},
@@ -21,5 +21,6 @@
 		"no-unused-vars": "warn",
 		"constructor-super": "warn",
 		"valid-typeof": "warn"
-	}
+	},
+	"parser": "babel-eslint"
 }

@@ -1,4 +1,5 @@
 {
+  "publisher": "gbrl-bro",
   "name": "chronus-timer",
   "displayName": "Chronus",
   "description": "A tool to help you keep track of how much time you spent coding.",
