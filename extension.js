@@ -1,4 +1,6 @@
 const vscode = require('vscode');
+const fs = require('fs')
+const { newDB, getDB, updateDB } = require('./database')
 
 /**
  * @param {vscode.ExtensionContext} context
@@ -12,33 +14,65 @@ let minutes = 0;
 let hours = 0;
 let time;			
 let date = new Date;
-let instances;
+let isMain = false;
 
 function activate(context) {
 
     myStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1);
 
+	newDB();
 	let configuration;
 	let pauseWhenUnfocused = true;
 
 	let currentDate = {"day":date.getDate(), "month": date.getMonth() + 1, "year":date.getFullYear()}
-	let dateTemplate = `${currentDate.day}/${currentDate.month}/${currentDate.year}`;
+	let dateTemplate = `${(currentDate.day < 10) ? '0' : ''}${currentDate.day}/${(currentDate.month < 10) ? '0' : ''}${currentDate.month}/${currentDate.year}`;
 
 	let currentDateArray = context.globalState.get(dateTemplate) || [];
 	currentDateArray.push('Placeholder');
 	context.globalState.update(dateTemplate, [...currentDateArray]);
 
 	let session = currentDateArray.length;
+
+	//Add new instance and check if an instance stopped running
+	context.globalState.update('31/3/2024', undefined);
+
+	let instances = context.globalState.get('instances') || {};
 	
+	let instanceID = String(Math.random().toFixed(10)).slice(2);
+
+	let lastInstance = context.globalState.get('lastInstance') || 0;
+
+	if(lastInstance - Date.now() < -5000) {
+		console.log("Clean Instances")
+		// modifyDB(false, true);
+	}
+
+	setInterval(()=>{
+		instances[instanceID] = Date.now();
+		context.globalState.update('instances', instances);
+		context.globalState.update('lastInstance', Date.now());
+	}, 1000)
+	
+	let instancesLength = Object.keys(instances);
+
+	if(instancesLength === 1) {
+		isMain = true;
+	}
+
+
+
+	// Functions
 	let startTimer = vscode.commands.registerCommand('chronus.startTimer', function () {
 		timerIsRunning = true;
 
 		timer = setInterval(() => {
+			// Update time on globalState
 			let sessionList = context.globalState.get(dateTemplate) || [];
 			sessionList[session - 1] = time;
 
 			context.globalState.update(dateTemplate, [...sessionList])
 
+			// Get current date
 			if(date.getDate() !== currentDate.day) {
 				currentDate = {"day":date.getDate(), "month": date.getMonth(), "year":date.getFullYear()}
 				seconds = minutes = hours = 0;
@@ -85,19 +119,45 @@ function activate(context) {
 
 			if(key.includes('/')) {
 				htmlContent += `
-				<div>
-					<h1>${[key]}</h1>
-				</div>
+				<details>
+					<summary>${[key]}</summary>
 								`;
 
 				context.globalState.get(key).forEach((el, index) => {
-				console.log(el)
 				htmlContent += `
-				<div>
 					<ul><li>Session ${[index + 1]}: ${[el]}</li></ul>
-				</div>
 								`;
-			})
+				})
+				htmlContent += `
+				<style>
+					@import url('https://fonts.googleapis.com/css2?family=Signika:wght@300..700&display=swap');
+
+					details {
+						font-family:Signika, Garamond;
+					}
+
+					li {
+						font-size:18px;
+						font-weight:400;
+						color:white;
+					}
+
+					summary {
+						font-size:28px; 
+						font-weight:600;
+						user-select: none;
+						transition: ease-out 150ms;
+						color:white;
+					}
+
+					summary:hover {
+						cursor:pointer;
+						color: #bababa;
+
+					}
+
+				</style>
+				</details>`;
 			}
 			
 		});
@@ -106,6 +166,11 @@ function activate(context) {
 		webViewElement.visible = true;
 		
 	})
+
+	let logGlobalState = vscode.commands.registerCommand('chronus.logGlobalState', () => {
+		console.log(context.globalState.f)
+	})
+
 
 	vscode.commands.executeCommand("chronus.startTimer");
 	vscode.workspace.onDidChangeConfiguration(() => {
@@ -131,6 +196,8 @@ function activate(context) {
 	context.subscriptions.push(pauseTimer);
 	context.subscriptions.push(myStatusBarItem);
 	context.subscriptions.push(showTimerLog);
+	context.subscriptions.push(logGlobalState);
+
 }
 
 function updateStatusBar(time, icon='$(debug-pause)', buttonCommand, tooltipText) {
@@ -140,6 +207,7 @@ function updateStatusBar(time, icon='$(debug-pause)', buttonCommand, tooltipText
 	myStatusBarItem.tooltip = `Click to ${tooltipText}`;
 	myStatusBarItem.accessibilyInfomation = time;
 }
+
 
 function deactivate() {}
 

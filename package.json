@@ -28,6 +28,10 @@
       {
         "command": "chronus.showTimerLog",
         "title": "Show Timer Log"
+      },
+      {
+        "command": "chronus.logGlobalState",
+        "title": "Log Global State"
       }
     ],
     "configuration": [
@@ -62,6 +66,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "sqlite3": "^5.1.7",
     "x11": "^2.3.0"
   }
 }
