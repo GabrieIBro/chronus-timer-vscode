@@ -21,7 +21,7 @@ function activate(context) {
 
 	newDB();
 	let configuration;
-	let pauseWhenUnfocused = true;
+	let pauseWhenUnfocused;
 
 	let currentDate = {"day":date.getDate(), "month": date.getMonth() + 1, "year":date.getFullYear()}
 	let dateTemplate = `${(currentDate.day < 10) ? '0' : ''}${currentDate.day}/${(currentDate.month < 10) ? '0' : ''}${currentDate.month}/${currentDate.year}`;
@@ -75,6 +75,7 @@ function activate(context) {
 	
 	let startTimer = vscode.commands.registerCommand('chronus.startTimer', function () {
 		timerIsRunning = true;
+		changeButtonCommand("chronus.pauseTimer");
 
 		timer = setInterval(() => {
 			// Update time on DB
@@ -114,7 +115,7 @@ function activate(context) {
 					+  (((minutes < 10) ? '0' : '') + minutes + 'm ') 
 					+  (((seconds < 10) ? '0' : '') + seconds + 's');
 	
-				updateStatusBar(time, '$(debug-pause)', "chronus.pauseTimer", "pause");
+				updateStatusBar(time, '$(debug-pause)', "pause");
 	
 				seconds += 1;	
 			}
@@ -125,7 +126,8 @@ function activate(context) {
 
 	let pauseTimer = vscode.commands.registerCommand('chronus.pauseTimer', function() {
 		timerIsRunning = false;
-		updateStatusBar(time, '$(debug-start)', "chronus.startTimer", "start");
+		updateStatusBar(time, '$(debug-start)', "start");
+		changeButtonCommand("chronus.startTimer");
 		clearInterval(timer);
 	})
 
@@ -219,8 +221,10 @@ function activate(context) {
 		}
 	})
 
-	let logGlobalState = vscode.commands.registerCommand('chronus.logGlobalState', () => {
-		console.log(context.globalState.f)
+	
+	let resetTimer = vscode.commands.registerCommand('chronus.resetTimer', function() {
+		hours = minutes = seconds = 0;
+		time
 	})
 
 
@@ -249,17 +253,23 @@ function activate(context) {
 	context.subscriptions.push(pauseTimer);
 	context.subscriptions.push(myStatusBarItem);
 	context.subscriptions.push(showTimerLog);
-	context.subscriptions.push(logGlobalState);
+	context.subscriptions.push(resetTimer);
 	context.subscriptions.push(resetLogs);
 
 }
 
-function updateStatusBar(time, icon='$(debug-pause)', buttonCommand, tooltipText) {
+function updateStatusBar(time, icon='$(debug-pause)', tooltipText) {
 	myStatusBarItem.text = `${icon} ${time}`;
 	myStatusBarItem.show();
-	myStatusBarItem.command = buttonCommand;
 	myStatusBarItem.tooltip = `Click to ${tooltipText}`;
-	myStatusBarItem.accessibilyInfomation = time;
+	myStatusBarItem.accessibilityInfomation = time;
+}
+
+function changeButtonCommand(buttonCommand) {
+	myStatusBarItem.command = undefined;
+	setTimeout(() => {
+		myStatusBarItem.command = buttonCommand;
+	}, 100)
 }
 
 function deactivate() {}

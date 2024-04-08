@@ -32,6 +32,10 @@
       {
         "command": "chronus.resetLogs",
         "title": "Reset Timer Logs"
+      },
+      {
+        "command": "chronus.resetTimer",
+        "title": "Reset Timer"
       }
     ],
     "configuration": [
