@@ -22,25 +22,31 @@ function activate(context) {
 	newDB();
 	let configuration;
 	let pauseWhenUnfocused;
-
-	let currentDate = {"day":date.getDate(), "month": date.getMonth() + 1, "year":date.getFullYear()}
-	let dateTemplate = `${(currentDate.day < 10) ? '0' : ''}${currentDate.day}/${(currentDate.month < 10) ? '0' : ''}${currentDate.month}/${currentDate.year}`;
+	let timerReset = false;
 	let session;
+	let dateTemplate;
+	let currentDate;
 
-	getDB()
-	.then(res => {
-		if(res[dateTemplate] === undefined) {
-			res[dateTemplate] = [];
-		}
+	function setCurrentDate() {
+		currentDate = {"day":date.getDate(), "month": date.getMonth() + 1, "year":date.getFullYear()}
+		dateTemplate = `${(currentDate.day < 10) ? '0' : ''}${currentDate.day}/${(currentDate.month < 10) ? '0' : ''}${currentDate.month}/${currentDate.year}`;
+		
+		getDB()
+		.then(res => {
+			if(res[dateTemplate] === undefined) {
+				res[dateTemplate] = [];
+			}
 
-		res[dateTemplate].push('00h 00m 00s');
-		session = res[dateTemplate].length;
-		updateDB(res)
-	})
-	.catch(err => {
-		console.log(err);
-	})
+			res[dateTemplate].push('00h 00m 00s');
+			session = res[dateTemplate].length;
+			updateDB(res)
+		})
+		.catch(err => {
+			console.log(err);
+		})
+	}
 
+	setCurrentDate();
 
 	//Add new instance and check if an instance stopped running
 
@@ -81,9 +87,11 @@ function activate(context) {
 			// Update time on DB
 			getDB()
 			.then(res => {
-				// if(!res[dateTemplate]) {
-				// 	res[dateTemplate] =('00h 00m 00s');
-				// }
+				if(timerReset) {
+					res[dateTemplate].push('00h 00m 00s');
+					session = res[dateTemplate].length;
+					timerReset = false;
+				}
 
 				res[dateTemplate][session - 1] = time;
 				updateDB(res);
@@ -119,7 +127,6 @@ function activate(context) {
 	
 				seconds += 1;	
 			}
-
 		}, 1000)
 
 	});
@@ -224,7 +231,9 @@ function activate(context) {
 	
 	let resetTimer = vscode.commands.registerCommand('chronus.resetTimer', function() {
 		hours = minutes = seconds = 0;
-		time
+		time = '00h 00m 00s';
+		vscode.commands.executeCommand('chronus.pauseTimer');
+		timerReset = true;
 	})
 
 

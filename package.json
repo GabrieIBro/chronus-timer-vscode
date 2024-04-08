@@ -45,7 +45,17 @@
           "chronus.pauseTimerWhenUnfocused": {
             "type": "boolean",
             "default": true,
-            "description": "Pause the timer when VSCode window is out of focus"
+            "description": "Pause the timer when VSCode window loses focus."
+          }
+        }
+      },
+      {
+        "title": "Chronus",
+        "properties": {
+          "chronus.runOnStartup": {
+            "type": "boolean",
+            "default": true,
+            "description": "Start timer automatically upon opening VSCode."
           }
         }
       }

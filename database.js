@@ -62,6 +62,7 @@ function getDB() {
                 resolve(data);
             }
         })
+        db.close();
     })
 }
 
@@ -75,6 +76,8 @@ function updateDB(obj) {
     db.run(sql, [obj], (err) => {
         if(err) {console.error(err.message);}
     })
+
+    db.close();
 }
 
 module.exports = {
