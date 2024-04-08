@@ -30,8 +30,8 @@
         "title": "Show Timer Log"
       },
       {
-        "command": "chronus.logGlobalState",
-        "title": "Log Global State"
+        "command": "chronus.resetLogs",
+        "title": "Reset Timer Logs"
       }
     ],
     "configuration": [
