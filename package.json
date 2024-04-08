@@ -27,11 +27,11 @@
       },
       {
         "command": "chronus.showTimerLog",
-        "title": "Show Timer Log"
+        "title": "Show Timer Records"
       },
       {
         "command": "chronus.resetLogs",
-        "title": "Reset Timer Logs"
+        "title": "Clear Timer Records"
       },
       {
         "command": "chronus.resetTimer",

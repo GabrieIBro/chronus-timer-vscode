@@ -100,11 +100,10 @@ function activate(context) {
 				console.log(err);
 			})
 
-
-			// Get current date
+			// Update current date
 			if(date.getDate() !== currentDate.day) {
-				currentDate = {"day":date.getDate(), "month": date.getMonth(), "year":date.getFullYear()}
-				seconds = minutes = hours = 0;
+				hours = minutes = seconds = 0;
+				setCurrentDate();
 			}
 
 			if(timerIsRunning) {
