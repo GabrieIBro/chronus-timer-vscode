@@ -5,6 +5,7 @@ const { newDB, getDB, updateDB } = require('./database')
  * @param {vscode.ExtensionContext} context
  */	
 let myStatusBarItem;
+let statusBarMore;
 let timerIsRunning = false;
 
 let timer;
@@ -17,7 +18,13 @@ let isMain = false;
 
 function activate(context) {
 
-    myStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1);
+    myStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 2);
+
+	statusBarMore = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1);
+	statusBarMore.text = `$(settings)`;
+	statusBarMore.tooltip = 'Chronus: More Options';
+	statusBarMore.command = 'chronus.showMoreOptions';
+	statusBarMore.show();
 
 	newDB();
 	let configuration;
@@ -122,7 +129,7 @@ function activate(context) {
 					+  (((minutes < 10) ? '0' : '') + minutes + 'm ') 
 					+  (((seconds < 10) ? '0' : '') + seconds + 's');
 	
-				updateStatusBar(time, '$(debug-pause)', "pause");
+				updateStatusBar(time, '$(debug-pause)', "Pause");
 	
 				seconds += 1;	
 			}
@@ -132,9 +139,16 @@ function activate(context) {
 
 	let pauseTimer = vscode.commands.registerCommand('chronus.pauseTimer', function() {
 		timerIsRunning = false;
-		updateStatusBar(time, '$(debug-start)', "start");
+		updateStatusBar(time, '$(debug-start)', "Start");
 		changeButtonCommand("chronus.startTimer");
 		clearInterval(timer);
+	})
+
+	let resetTimer = vscode.commands.registerCommand('chronus.resetTimer', function() {
+		hours = minutes = seconds = 0;
+		time = '00h 00m 00s';
+		vscode.commands.executeCommand('chronus.pauseTimer');
+		timerReset = true;
 	})
 
 	let showTimerLog = vscode.commands.registerCommand('chronus.showTimerLog', function() {
@@ -227,14 +241,9 @@ function activate(context) {
 		}
 	})
 
-	
-	let resetTimer = vscode.commands.registerCommand('chronus.resetTimer', function() {
-		hours = minutes = seconds = 0;
-		time = '00h 00m 00s';
-		vscode.commands.executeCommand('chronus.pauseTimer');
-		timerReset = true;
+	let showMoreOptions = vscode.commands.registerCommand('chronus.showMoreOptions', () => {
+		let webViewElement = vscode.window.createWebviewPanel();
 	})
-
 
 	vscode.commands.executeCommand("chronus.startTimer");
 	vscode.workspace.onDidChangeConfiguration(() => {
@@ -260,16 +269,18 @@ function activate(context) {
 	context.subscriptions.push(startTimer);
 	context.subscriptions.push(pauseTimer);
 	context.subscriptions.push(myStatusBarItem);
+	context.subscriptions.push(statusBarMore);
 	context.subscriptions.push(showTimerLog);
 	context.subscriptions.push(resetTimer);
 	context.subscriptions.push(resetLogs);
+	context.subscriptions.push(showMoreOptions);
 
 }
 
 function updateStatusBar(time, icon='$(debug-pause)', tooltipText) {
 	myStatusBarItem.text = `${icon} ${time}`;
 	myStatusBarItem.show();
-	myStatusBarItem.tooltip = `Click to ${tooltipText}`;
+	myStatusBarItem.tooltip = `Click To ${tooltipText}`;
 	myStatusBarItem.accessibilityInfomation = time;
 }
 

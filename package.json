@@ -36,6 +36,10 @@
       {
         "command": "chronus.resetTimer",
         "title": "Reset Timer"
+      },
+      {
+        "command": "chronus.showMoreOptions",
+        "title": "Show More Options"
       }
     ],
     "configuration": [
@@ -59,7 +63,26 @@
           }
         }
       }
-    ]
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "true",
+          "command": "chronus.resetLogs",
+          "group": "Chronus"
+        },
+        {
+          "when": "true",
+          "command": "chronus.showTimerLog",
+          "group": "Chronus"
+        },
+        {
+          "when": "true",
+          "command": "chronus.resetTimer",
+          "group": "Chronus"
+        }
+      ]
+    }
   },
   "repository": {
     "type": "git",
