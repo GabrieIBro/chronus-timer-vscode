@@ -23,7 +23,7 @@
       },
       {
         "command": "chronus.pauseTimer",
-        "title": "Stop Timer"
+        "title": "Pause Timer"
       },
       {
         "command": "chronus.showTimerLog",

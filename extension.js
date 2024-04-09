@@ -34,6 +34,7 @@ function activate(context) {
 	let currentDate;
 	let pauseWhenUnfocused = vscode.workspace.getConfiguration('chronus').get('pauseTimerWhenUnfocused');
 
+	// Check if window focus changed
 	function windowListener() {
 		return vscode.window.onDidChangeWindowState((event) => {
 			if(!event.focused && timerIsRunning) {
@@ -45,11 +46,12 @@ function activate(context) {
 		})
 	}
 
+	//Instantiate window listener if pauseWhenUnfocus === true;
 	let listener;
 
 	if(pauseWhenUnfocused) {
 		listener = windowListener()
-		console.log('Initial Window Listener');
+		// console.log('Initial Window Listener');
 	}
 
 	function setCurrentDate() {
@@ -65,7 +67,7 @@ function activate(context) {
 			res[dateTemplate].push('00h 00m 00s');
 			session = res[dateTemplate].length;
 			updateDB(res, 'time-records');
-			console.log(res);
+			// console.log(res);
 		})
 		.catch(err => {
 			console.log(err);
@@ -87,23 +89,27 @@ function activate(context) {
 
 		let instanceID = String(Math.random().toFixed(10)).slice(2);
 
-		if(res.lastInstance - Date.now() < -5000) {
-			// console.log("Clean Instances")
-			// modifyDB(false, true);
+		if(res.lastInstance - Date.now() < -2000) {
+			console.log(res);
+			res.lastInstance = 0;
+			res.instances = {};
+			console.log("Clean Instances")
 		}
-		
+
+
 		setInterval(()=>{
 			res.instances[instanceID] = Date.now();
 			res.lastInstance = Date.now();
+
+			let activeInstances = Object.keys(res.instances).length;
+			if(activeInstances === 1) {
+				mainInstance = true;
+			}	
+			
+			vscode.window.showInformationMessage(`Main Instance: ${mainInstance}\tActive Instances: ${Object.keys(res.instances)}`);
+
 			updateDB(res, 'instance-data');
-			// console.log("Instances:", res);
 		}, 1000)
-
-		let activeInstances = Object.keys(res.instances).length;
-
-		if(activeInstances === 1) {
-			mainInstance = true;
-		}	
 	})
 
 	// Functions
@@ -263,17 +269,16 @@ function activate(context) {
 		pauseWhenUnfocused = vscode.workspace.getConfiguration('chronus').get('pauseTimerWhenUnfocused');
 		if(pauseWhenUnfocused && !listener) {
 			listener = windowListener();
-			console.log('New Window Listener');
+			// console.log('New Window Listener');
 		}
 
 		if(!pauseWhenUnfocused){
 			listener.dispose();
 			listener = undefined;
-			console.log('Dispose');
+			// console.log('Dispose');
 		}
 	});
 	
-
 
 	context.subscriptions.push(startTimer);
 	context.subscriptions.push(pauseTimer);
