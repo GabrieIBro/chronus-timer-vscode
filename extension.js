@@ -19,6 +19,7 @@ let mainInstance = false;
 
 function activate(context) {
 
+	newDB();
     myStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 2);
 
 	statusBarMore = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1);
@@ -27,19 +28,35 @@ function activate(context) {
 	statusBarMore.command = 'chronus.showMoreOptions';
 	statusBarMore.show();
 
-	newDB();
-	let configuration;
-	let pauseWhenUnfocused;
 	let timerReset = false;
 	let session;
 	let dateTemplate;
 	let currentDate;
+	let pauseWhenUnfocused = vscode.workspace.getConfiguration('chronus').get('pauseTimerWhenUnfocused');
+
+	function windowListener() {
+		return vscode.window.onDidChangeWindowState((event) => {
+			if(!event.focused && timerIsRunning) {
+				vscode.commands.executeCommand("chronus.pauseTimer")
+			}
+			else if(event.focused && !timerIsRunning) {
+				vscode.commands.executeCommand("chronus.startTimer");
+			}
+		})
+	}
+
+	let listener;
+
+	if(pauseWhenUnfocused) {
+		listener = windowListener()
+		console.log('Initial Window Listener');
+	}
 
 	function setCurrentDate() {
 		currentDate = {"day":date.getDate(), "month": date.getMonth() + 1, "year":date.getFullYear()}
 		dateTemplate = `${(currentDate.day < 10) ? '0' : ''}${currentDate.day}/${(currentDate.month < 10) ? '0' : ''}${currentDate.month}/${currentDate.year}`;
 		
-		getDB()
+		getDB('time-records')
 		.then(res => {
 			if(res[dateTemplate] === undefined) {
 				res[dateTemplate] = [];
@@ -47,7 +64,8 @@ function activate(context) {
 
 			res[dateTemplate].push('00h 00m 00s');
 			session = res[dateTemplate].length;
-			updateDB(res)
+			updateDB(res, 'time-records');
+			console.log(res);
 		})
 		.catch(err => {
 			console.log(err);
@@ -57,35 +75,36 @@ function activate(context) {
 
 	//Add new instance and check if an instance stopped running
 
-	// getDB()
-	// .then(res => {
-	// 	if(!res.instances) {
-	// 		res.instances = {};
-	// 	}
+	getDB('instance-data')
+	.then(res => {
+		if(!res.instances) {
+			res.instances = {};
+		}
 		
-	// 	if(!res.lastInstance) {
-	// 		res.lastInstance = 0;
-	// 	}
+		if(!res.lastInstance) {
+			res.lastInstance = 0;
+		}
 
-	// 	let instanceID = String(Math.random().toFixed(10)).slice(2);
+		let instanceID = String(Math.random().toFixed(10)).slice(2);
 
-	// 	if(res.lastInstance - Date.now() < -5000) {
-	// 		console.log("Clean Instances")
-	// 		// modifyDB(false, true);
-	// 	}
+		if(res.lastInstance - Date.now() < -5000) {
+			// console.log("Clean Instances")
+			// modifyDB(false, true);
+		}
 		
-	// 	setInterval(()=>{
-	// 		res.instances[instanceID] = Date.now();
-	// 		res.lastInstance = Date.now();
-	// 		updateDB(res);
-	// 	}, 1000)
+		setInterval(()=>{
+			res.instances[instanceID] = Date.now();
+			res.lastInstance = Date.now();
+			updateDB(res, 'instance-data');
+			// console.log("Instances:", res);
+		}, 1000)
 
-	// 	let activeInstances = Object.keys(res.instances).length;
+		let activeInstances = Object.keys(res.instances).length;
 
-	// 	if(activeInstances === 1) {
-	// 		mainInstance = true;
-	// 	}	
-	// })
+		if(activeInstances === 1) {
+			mainInstance = true;
+		}	
+	})
 
 	// Functions
 	
@@ -95,7 +114,7 @@ function activate(context) {
 
 		timer = setInterval(() => {
 			// Update time on DB
-			getDB()
+			getDB('time-records')
 			.then(res => {
 				if(timerReset) {
 					res[dateTemplate].push('00h 00m 00s');
@@ -104,7 +123,7 @@ function activate(context) {
 				}
 
 				res[dateTemplate][session - 1] = time;
-				updateDB(res);
+				updateDB(res, 'time-records');
 			})
 			.catch(err => {
 				console.log(err);
@@ -157,7 +176,7 @@ function activate(context) {
 	let showTimerLog = vscode.commands.registerCommand('chronus.showTimerLog', function() {
 		let webViewElement = vscode.window.createWebviewPanel('string', 'Work Log', vscode.ViewColumn.One);
 
-		getDB()
+		getDB('time-records')
 		.then(res => {
 			let keys = Object.keys(res);
 
@@ -218,31 +237,20 @@ function activate(context) {
 	})
 
 	let resetLogs = vscode.commands.registerCommand('chronus.resetLogs', async function() {
-		time = '00h 00m 00s';
-		hours = minutes = seconds = 0;
-		vscode.commands.executeCommand('chronus.pauseTimer');
-
 		let reload = await vscode.window.showWarningMessage(
-			'This function will reload the workspace. Do you want to proceed?',
+			"To proceed with deleting all records from Chronus, click 'Confirm'.",
 			{ modal: true },
-			'Reload'
+			'Confirm'
 		);
 		
 		if(reload) {
-					getDB()
-		.then(res => {
-			let keys = Object.keys(res);
-
-			keys.forEach(key => {
-				if(key.includes('/')) {
-					delete res[key];
-				}
-			})
-			updateDB(res);
+			time = '00h 00m 00s';
+			hours = minutes = seconds = 0;
+			vscode.commands.executeCommand('chronus.pauseTimer');
+			
+			updateDB({}, 'time-records');
 			vscode.commands.executeCommand('workbench.action.reloadWindow');
-		})
-		}
-	})
+	    }})
 
 	let showMoreOptions = vscode.commands.registerCommand('chronus.showMoreOptions', () => {
 		let webViewElement = vscode.window.createWebviewPanel();
@@ -250,36 +258,22 @@ function activate(context) {
 
 	vscode.commands.executeCommand("chronus.startTimer");
 	
-	let listener;
-
-	function windowListener() {
-		listener = vscode.window.onDidChangeWindowState((event) => {
-			// console.log("Window Listener")
-			if(pauseWhenUnfocused) {
-				if(!event.focused && timerIsRunning) {
-					vscode.commands.executeCommand("chronus.pauseTimer")
-				}
-				else if(event.focused && !timerIsRunning) {
-					vscode.commands.executeCommand("chronus.startTimer");
-				}
-			}
-		})
-	}
-
+	// Create new window listener || Delete window listener: When pauseWhenUnfocused change
 	vscode.workspace.onDidChangeConfiguration(() => {
-		configuration = vscode.workspace.getConfiguration('chronus');
-		pauseWhenUnfocused = configuration.get("pauseTimerWhenUnfocused");	
-
-		if(!pauseWhenUnfocused) {
-			listener.dispose();
+		pauseWhenUnfocused = vscode.workspace.getConfiguration('chronus').get('pauseTimerWhenUnfocused');
+		if(pauseWhenUnfocused && !listener) {
+			listener = windowListener();
+			console.log('New Window Listener');
 		}
-		
-		if(pauseWhenUnfocused) {
-			windowListener();
+
+		if(!pauseWhenUnfocused){
+			listener.dispose();
+			listener = undefined;
+			console.log('Dispose');
 		}
 	});
+	
 
-	windowListener()
 
 	context.subscriptions.push(startTimer);
 	context.subscriptions.push(pauseTimer);

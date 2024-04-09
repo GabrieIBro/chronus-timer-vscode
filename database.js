@@ -25,34 +25,35 @@ function newDB() {
     })
 
     db.serialize(() => {
-        sql = `CREATE TABLE IF NOT EXISTS chronus(
-            name TEXT PRIMARY KEY,
-            value TEXT
-        )`;
 
-        db.run(sql, (err) => {
-            if(err) {console.error(err.message)}
-        })  
+        db.run(`CREATE TABLE IF NOT EXISTS chronus(
+                    name TEXT PRIMARY KEY,
+                    value TEXT
+                                                    )
+                `
+        )
+        .run(`INSERT OR IGNORE INTO chronus(name, value) VALUES ('time-records', '{}')`)
+        .run(`INSERT OR IGNORE INTO chronus(name, value) VALUES ('instance-data', '{}')`, err =>{
+            if(err) {
+                console.error(err.message);
+            }
+        })
+        
 
-        sql = `INSERT OR IGNORE INTO chronus(name, value) VALUES ('chronus-data', '{}')`;
-
-        db.run(sql, err => {
-            if(err) {console.error(err.message)}
         })
 
         db.close();
-        })
 }
 
-function getDB() {
+function getDB(rowName) {
     let data;
-    let sql = `SELECT * FROM chronus WHERE name='chronus-data'`;
+    let sql = `SELECT * FROM chronus WHERE name=?`;
     let db = new sqlite3.Database(filePath, sqlite3.OPEN_READWRITE, (err) => {
         if(err) {console.error(err.message)}
     });
 
     return new Promise((resolve,reject) => {
-        db.get(sql, (err, row) => {
+        db.get(sql, [rowName],(err, row) => {
             if(err){
                 reject(err.message);
             }
@@ -66,14 +67,14 @@ function getDB() {
     })
 }
 
-function updateDB(obj) {
+function updateDB(obj, rowName) {
     obj = JSON.stringify(obj);
-    let sql = `UPDATE chronus SET value=? WHERE name='chronus-data'`
+    let sql = `UPDATE chronus SET value=? WHERE name=?`
     let db = new sqlite3.Database(filePath, sqlite3.OPEN_READWRITE, (err) => {
         if(err) {console.error(err.message);}
     })
 
-    db.run(sql, [obj], (err) => {
+    db.run(sql, [obj, rowName], (err) => {
         if(err) {console.error(err.message);}
     })
 
