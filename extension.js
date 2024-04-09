@@ -1,3 +1,4 @@
+"use strict"
 const vscode = require('vscode');
 const { newDB, getDB, updateDB } = require('./database')
 
@@ -14,7 +15,7 @@ let minutes = 0;
 let hours = 0;
 let time;			
 let date = new Date;
-let isMain = false;
+let mainInstance = false;
 
 function activate(context) {
 
@@ -52,37 +53,39 @@ function activate(context) {
 			console.log(err);
 		})
 	}
-
 	setCurrentDate();
 
 	//Add new instance and check if an instance stopped running
 
-	// context.globalState.update('31/3/2024', undefined);
+	// getDB()
+	// .then(res => {
+	// 	if(!res.instances) {
+	// 		res.instances = {};
+	// 	}
+		
+	// 	if(!res.lastInstance) {
+	// 		res.lastInstance = 0;
+	// 	}
 
-	// let instances = context.globalState.get('instances') || {};
-	
-	// let instanceID = String(Math.random().toFixed(10)).slice(2);
+	// 	let instanceID = String(Math.random().toFixed(10)).slice(2);
 
-	// let lastInstance = context.globalState.get('lastInstance') || 0;
+	// 	if(res.lastInstance - Date.now() < -5000) {
+	// 		console.log("Clean Instances")
+	// 		// modifyDB(false, true);
+	// 	}
+		
+	// 	setInterval(()=>{
+	// 		res.instances[instanceID] = Date.now();
+	// 		res.lastInstance = Date.now();
+	// 		updateDB(res);
+	// 	}, 1000)
 
-	// if(lastInstance - Date.now() < -5000) {
-	// 	console.log("Clean Instances")
-	// 	// modifyDB(false, true);
-	// }
+	// 	let activeInstances = Object.keys(res.instances).length;
 
-	// setInterval(()=>{
-	// 	instances[instanceID] = Date.now();
-	// 	context.globalState.update('instances', instances);
-	// 	context.globalState.update('lastInstance', Date.now());
-	// }, 1000)
-	
-	// let instancesLength = Object.keys(instances);
-
-	// if(instancesLength === 1) {
-	// 	isMain = true;
-	// }
-
-
+	// 	if(activeInstances === 1) {
+	// 		mainInstance = true;
+	// 	}	
+	// })
 
 	// Functions
 	
@@ -208,7 +211,7 @@ function activate(context) {
 			});
 
 			webViewElement.webview.html = htmlContent;
-			webViewElement.visible = true;
+			webViewElement.reveal();
 			
 
 		})
@@ -246,26 +249,38 @@ function activate(context) {
 	})
 
 	vscode.commands.executeCommand("chronus.startTimer");
+	
+	let listener;
+
+	function windowListener() {
+		listener = vscode.window.onDidChangeWindowState((event) => {
+			// console.log("Window Listener")
+			if(pauseWhenUnfocused) {
+				if(!event.focused && timerIsRunning) {
+					vscode.commands.executeCommand("chronus.pauseTimer")
+				}
+				else if(event.focused && !timerIsRunning) {
+					vscode.commands.executeCommand("chronus.startTimer");
+				}
+			}
+		})
+	}
+
 	vscode.workspace.onDidChangeConfiguration(() => {
 		configuration = vscode.workspace.getConfiguration('chronus');
 		pauseWhenUnfocused = configuration.get("pauseTimerWhenUnfocused");	
-		console.log('pauseWhenUnfocused: ' + pauseWhenUnfocused);			
-	});
 
-	let listener = vscode.window.onDidChangeWindowState((event) => {
-		if(pauseWhenUnfocused) {
-			if(!event.focused && timerIsRunning) {
-				vscode.commands.executeCommand("chronus.pauseTimer")
-			}
-			else if(event.focused && !timerIsRunning) {
-				vscode.commands.executeCommand("chronus.startTimer");
-			}
-		}
-		else {
+		if(!pauseWhenUnfocused) {
 			listener.dispose();
 		}
-	})
-	
+		
+		if(pauseWhenUnfocused) {
+			windowListener();
+		}
+	});
+
+	windowListener()
+
 	context.subscriptions.push(startTimer);
 	context.subscriptions.push(pauseTimer);
 	context.subscriptions.push(myStatusBarItem);
