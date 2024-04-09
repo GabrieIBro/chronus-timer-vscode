@@ -33,6 +33,7 @@ function newDB() {
                 `
         )
         .run(`INSERT OR IGNORE INTO chronus(name, value) VALUES ('time-records', '{}')`)
+        .run(`INSERT OR IGNORE INTO chronus(name, value) VALUES ('current-time', '{}')`)
         .run(`INSERT OR IGNORE INTO chronus(name, value) VALUES ('instance-data', '{}')`, err =>{
             if(err) {
                 console.error(err.message);
@@ -45,7 +46,7 @@ function newDB() {
         db.close();
 }
 
-function getDB(rowName) {
+function getRow(rowName) {
     let data;
     let sql = `SELECT * FROM chronus WHERE name=?`;
     let db = new sqlite3.Database(filePath, sqlite3.OPEN_READWRITE, (err) => {
@@ -83,6 +84,6 @@ function updateDB(obj, rowName) {
 
 module.exports = {
     newDB,
-    getDB,
+    getRow,
     updateDB
 }

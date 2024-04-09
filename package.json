@@ -40,6 +40,10 @@
       {
         "command": "chronus.showMoreOptions",
         "title": "Show More Options"
+      },
+      {
+        "command": "chronus.notMain",
+        "title": "notMain"
       }
     ],
     "configuration": [
