@@ -1,6 +1,6 @@
 ## Description
 
-There are tons of other extensions like this on VSCode, except this one includes a functionality I didn't find in any other(I actually didn't test many of them :D), the extension can detect if the editor window loses focus and pause the timer automatically.
+Enhance your time management and productivity with this extension. It assists you in tracking your coding sessions and maintaining focus on your work.
 
 ## Extension Settings
 

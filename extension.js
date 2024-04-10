@@ -59,7 +59,7 @@ function activate(context) {
 						mainInstance = false;
 					}	
 					
-					vscode.window.showInformationMessage(`Main Instance: ${mainInstance}\tActive Instances: ${Object.keys(res.instances)}`);
+					// vscode.window.showInformationMessage(`Main Instance: ${mainInstance}\tActive Instances: ${Object.keys(res.instances)}`);
 		
 					updateDB(res, 'instance-data');
 				}, 1000)
@@ -116,7 +116,6 @@ function activate(context) {
 					}
 		
 					if(runOnStartup) {
-						console.log('runoNStartup: ', runOnStartup);
 						res[dateTemplate].push('00h 00m 00s');
 						session = res[dateTemplate].length;
 					}
@@ -240,14 +239,21 @@ function activate(context) {
 			})
 		
 			let resetTimer = vscode.commands.registerCommand('chronus.resetTimer', function() {
-				hours = minutes = seconds = 0;
-				time = '00h 00m 00s';
-				vscode.commands.executeCommand('chronus.pauseTimer');
-				timerReset = true;
+				if(mainInstance) {
+					hours = minutes = seconds = 0;
+					time = '00h 00m 00s';
+					vscode.commands.executeCommand('chronus.pauseTimer');
+					timerReset = true;
+				}
 			})
 		
 			let showTimerLog = vscode.commands.registerCommand('chronus.showTimerLog', function() {
-				let webViewElement = vscode.window.createWebviewPanel('string', 'Work Log', vscode.ViewColumn.One);
+				let webViewElement = vscode.window.createWebviewPanel('string', 'Chronus', vscode.ViewColumn.One)
+
+				webViewElement.iconPath = {
+						dark: vscode.Uri.joinPath(context.extensionUri, 'images', 'timer.png'),
+						light: vscode.Uri.joinPath(context.extensionUri, 'images', 'timer-dark.png'),
+				};
 		
 				getRow('time-records')
 				.then(res => {
@@ -259,8 +265,12 @@ function activate(context) {
 		
 						if(key.includes('/')) {
 							htmlContent += `
+							<main>
+							<h1>Summary</h1>
+							
 							<details>
-								<summary>${[key]}</summary>
+							<summary>${[key]}</summary>
+
 											`;
 		
 							res[key].forEach((el, index) => {
@@ -271,11 +281,56 @@ function activate(context) {
 							htmlContent += `
 							<style>
 								@import url('https://fonts.googleapis.com/css2?family=Signika:wght@300..700&display=swap');
-		
-								details {
-									font-family:Signika, Garamond;
+
+								main {
+									background-color: #292929;
+									display: flex;
+									flex-direction: column;
+									align-items:center;
+									border-radius: 15px;
+									padding:10px;
+									margin-top: 5px;
+									transition: height 100ms ease-out;
+									box-shadow: 5px 5px 20px #1c1c1c;
+									max-width: 700px;
+									margin-left: auto;
+									margin-right: auto;
 								}
-		
+
+								div {
+									position: relative;
+									width: 100%;
+								}
+
+								details {
+									position: relative;
+									font-family:Signika, Garamond;
+									width: 100%;
+									border-radius: 15px;
+								}
+								
+								details[open] {
+									background-color: #303030;
+									padding-bottom: 15px;
+								}
+
+								details[open] > summary {
+									list-style-type: '';
+									background-color: #303030;
+								}
+								
+								details[open] > summary::after {
+									transform: rotate(225deg);
+								}
+
+								h1 {
+									font-size:28px; 
+									color: white;
+									margin-top: 0;
+									margin-bottom: 10px;
+									user-select: none;
+								}
+
 								li {
 									font-size:18px;
 									font-weight:400;
@@ -283,21 +338,41 @@ function activate(context) {
 								}
 		
 								summary {
+									position: relative;
 									font-size:28px; 
 									font-weight:600;
 									user-select: none;
 									transition: ease-out 150ms;
 									color:white;
+									list-style-type: '';
+									width:100%;
+									height: 60px;
+    								display: flex;
+    								align-items: center;
+									border-radius: 15px;
+									text-indent: 15px;
 								}
-		
+								
+								summary::after {
+									transform: rotate(45deg);
+									transition: 200ms ease-in-out;
+									content: "";
+									position:absolute;
+									right: 20px;
+									height:20px;
+									width:20px;
+									background-color: white;
+									clip-path: polygon(50% 0%,65.00% 0.00%,65.00% 65.00%,1.00% 65.00%,0% 50%,50% 50%);								}
+
 								summary:hover {
 									cursor:pointer;
-									color: #bababa;
+									background-color: #303030;
 		
 								}
 		
 							</style>
-							</details>`;
+							</details>
+							</main>`;
 						}
 						
 					});
@@ -305,24 +380,25 @@ function activate(context) {
 					webViewElement.webview.html = htmlContent;
 					webViewElement.reveal();
 					
-		
 				})
 			})
 		
 			let resetLogs = vscode.commands.registerCommand('chronus.resetLogs', async function() {
-				let reload = await vscode.window.showWarningMessage(
-					"To proceed with deleting all records from Chronus, click 'Confirm'.",
-					{ modal: true },
-					'Confirm'
-				);
-				
-				if(reload) {
-					time = '00h 00m 00s';
-					hours = minutes = seconds = 0;
-					vscode.commands.executeCommand('chronus.pauseTimer');
+				if(mainInstance) {
+					let reload = await vscode.window.showWarningMessage(
+						"To proceed with deleting all records from Chronus, click 'Confirm'.",
+						{ modal: true },
+						'Confirm'
+					);
 					
-					updateDB({}, 'time-records');
-					vscode.commands.executeCommand('workbench.action.reloadWindow');
+					if(reload) {
+						time = '00h 00m 00s';
+						hours = minutes = seconds = 0;
+						vscode.commands.executeCommand('chronus.pauseTimer');
+						
+						updateDB({}, 'time-records');
+						vscode.commands.executeCommand('workbench.action.reloadWindow');
+					}
 				}})
 			
 			let showMoreOptions = vscode.commands.registerCommand('chronus.showMoreOptions', () => {
@@ -341,15 +417,15 @@ function activate(context) {
 				updateStatusBar(time, '$(debug-start)', "Start");
 				changeButtonCommand("chronus.startTimer");
 				console.log('Don"t start up')
+				vscode.window.showInformationMessage(`Main Instance && NotRunOnStartup`)
+
 			}
-			else {
+			
+			if(runOnStartup) {
 				vscode.commands.executeCommand("chronus.startTimer");
+				vscode.window.showInformationMessage(`Run On Startup`);
 			}
-		
-			if(!mainInstance) {
-				vscode.commands.executeCommand("chronus.startTimer");
-			}
-		
+				
 			// Create new window listener || Delete window listener: When pauseWhenUnfocused change
 			vscode.workspace.onDidChangeConfiguration(() => {
 				pauseWhenUnfocused = vscode.workspace.getConfiguration('chronus').get('pauseTimerWhenUnfocused');
