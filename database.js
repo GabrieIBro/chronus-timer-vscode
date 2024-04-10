@@ -19,38 +19,39 @@ else if(os.platform() === 'win32') {
 }
 
 function newDB() {
-    let sql;
-    let db = new sqlite3.Database(filePath, sqlite3.OPEN_CREATE | sqlite3.OPEN_READWRITE, (err) => {
-        if(err) {console.error(err.message)}
+    return new Promise((resolve, reject) => {
+
+        let db = new sqlite3.Database(filePath, sqlite3.OPEN_CREATE | sqlite3.OPEN_READWRITE, (err) => {
+            if(err) {console.error(err.message)}
+        })
+    
+        db.serialize(() => {
+    
+            db.run(`CREATE TABLE IF NOT EXISTS chronus(
+                        name TEXT PRIMARY KEY,
+                        value TEXT
+                                                        )
+                    `
+            )
+            .run(`INSERT OR IGNORE INTO chronus(name, value) VALUES ('time-records', '{}')`)
+            .run(`INSERT OR IGNORE INTO chronus(name, value) VALUES ('current-time', '{}')`)
+            .run(`INSERT OR IGNORE INTO chronus(name, value) VALUES ('instance-data', '{}')`, err =>{
+                if(err) {
+                    reject(err.message);
+                }
+                resolve({dbReady:true})
+            })
+        })
     })
 
-    db.serialize(() => {
-
-        db.run(`CREATE TABLE IF NOT EXISTS chronus(
-                    name TEXT PRIMARY KEY,
-                    value TEXT
-                                                    )
-                `
-        )
-        .run(`INSERT OR IGNORE INTO chronus(name, value) VALUES ('time-records', '{}')`)
-        .run(`INSERT OR IGNORE INTO chronus(name, value) VALUES ('current-time', '{}')`)
-        .run(`INSERT OR IGNORE INTO chronus(name, value) VALUES ('instance-data', '{}')`, err =>{
-            if(err) {
-                console.error(err.message);
-            }
-        })
-        
-
-        })
-
-        db.close();
 }
 
 function getRow(rowName) {
     let data;
     let sql = `SELECT * FROM chronus WHERE name=?`;
     let db = new sqlite3.Database(filePath, sqlite3.OPEN_READWRITE, (err) => {
-        if(err) {console.error(err.message)}
+        if(err) {
+            console.error(err.message)}
     });
 
     return new Promise((resolve,reject) => {
