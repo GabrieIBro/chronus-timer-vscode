@@ -16,6 +16,7 @@ let hours = 0;
 let time;			
 let date = new Date;
 let mainInstance = true;
+let instanceID = String(Math.random().toFixed(10)).slice(2);
 
 function activate(context) {
 	
@@ -28,6 +29,10 @@ function activate(context) {
 			getRow('instance-data')
 			.then(res => {
 				// Create properties if they don't exist
+				if(!res.instanceStatus) {
+					res.instanceStatus = {};
+				}
+				
 				if(!res.instances) {
 					res.instances = {};
 				}
@@ -36,22 +41,21 @@ function activate(context) {
 					res.lastInstance = 0;
 				}
 		
-				let instanceID = String(Math.random().toFixed(10)).slice(2);
-		
 				// Checks if lastInstance time has more than 2 seconds without being updated
 				if(res.lastInstance - Date.now() < -2000) {
 					res.lastInstance = 0;
+					res.instanceStatus = {};
 					res.instances = {};
 				}
-				res.instances[instanceID] = 'focused';
-
+				res.instanceStatus[instanceID] = 'focused';
 				
 				setInterval(()=>{
 				
-					 vscode.window.onDidChangeWindowState(event =>{
-						res.instances[instanceID] = (event.focused) ? 'focused' : 'unfocused';
-					});
-		
+					//  vscode.window.onDidChangeWindowState(event =>{
+					// 	res.instanceStatus[instanceID] = (event.focused) ? 'focused' : 'unfocused';
+					// });
+					
+					res.instances[instanceID] = Date.now();
 					res.lastInstance = Date.now();
 		
 					let activeInstances = Object.keys(res.instances).length;
@@ -59,7 +63,7 @@ function activate(context) {
 						mainInstance = false;
 					}	
 					
-					// vscode.window.showInformationMessage(`Main Instance: ${mainInstance}\tActive Instances: ${Object.keys(res.instances)}`);
+					// vscode.window.showInformationMessage(`Main Instance: ${mainInstance}\tActive Instances: ${Object.keys(res.instanceStatus)}`);
 		
 					updateDB(res, 'instance-data');
 				}, 1000)
@@ -67,12 +71,14 @@ function activate(context) {
 	
 			myStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 2);
 		
-			statusBarMore = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1);
-			statusBarMore.text = `$(settings)`;
-			statusBarMore.tooltip = 'Chronus: More Options';
-			statusBarMore.command = 'chronus.showMoreOptions';
-			statusBarMore.show();
-		
+			if(mainInstance) {
+				statusBarMore = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1);
+				statusBarMore.text = `$(settings)`;
+				statusBarMore.tooltip = 'Chronus: More Options';
+				statusBarMore.command = 'chronus.showMoreOptions';
+				statusBarMore.show();
+			}
+
 			let timerReset = false;
 			let session;
 			let dateTemplate;
@@ -80,22 +86,61 @@ function activate(context) {
 			let pauseWhenUnfocused = vscode.workspace.getConfiguration('chronus').get('pauseTimerWhenUnfocused');
 			let runOnStartup = vscode.workspace.getConfiguration('chronus').get('runOnStartup');
 
-			// Check if window focus changed
-			function windowListener() {
-				return vscode.window.onDidChangeWindowState((event) => {
-					getRow('instance-data')
-					.then(res => {
-						let {lastInstance} = res;
-						console.log(lastInstance);
-					})
-		
-					if(!event.focused && timerIsRunning) {
-						vscode.commands.executeCommand("chronus.pauseTimer")
+			// vscode.window.onDidChangeWindowState(event => {
+			// 	setTimeout(() => {
+			// 		getRow('instance-data')
+			// 		.then(res => {
+			// 			vscode.window.showInformationMessage(res.instanceStatus[instanceID]);
+			// 		})
+			// 	}, 30)
+			// })
+			setInterval(() => {
+				getRow('instance-data')
+				.then(res => {
+					res.instanceStatus[instanceID] = (vscode.window.state.focused) ? 'focused' : 'unfocused';
+					if(mainInstance) {
+						updateDB(res, 'instance-data');
 					}
-					else if(event.focused && !timerIsRunning) {
-						vscode.commands.executeCommand("chronus.startTimer");
+					else {
+						setTimeout(() => {
+							updateDB(res, 'instance-data');
+						}, 15)
 					}
 				})
+			}, 235)
+			
+
+			// vscode.window.onDidChangeWindowState(event => {
+			// 	getRow('instance-data')
+			// 	.then(res => {
+			// 		vscode.window.showInformationMessage(event.focused);
+			// 		res.instanceStatus[instanceID] = (event.focused) ? 'focused' : 'unfocused';
+			// 		console.log(res.instanceStatus);
+			// 		updateDB(res, 'instance-data');
+			// 	}) 
+			// })
+
+			// Check if window focus changed
+			function windowListener() {
+				return setInterval(() => {
+					// let event = vscode.window.state.focused;
+					getRow('instance-data')
+					.then(res => {
+						
+						let focus = Object.values(res.instanceStatus, session);
+						let pause = !focus.includes('focused');
+						console.log(focus);
+						if(mainInstance) {
+							if(timerIsRunning && pause) {
+								vscode.commands.executeCommand("chronus.pauseTimer")
+							}
+							if(!pause && !timerIsRunning) {
+								vscode.commands.executeCommand("chronus.startTimer");
+							}
+							
+						}
+					})
+				}, 500)
 			}
 		
 			//Instantiate window listener if pauseWhenUnfocus === true;
@@ -141,6 +186,10 @@ function activate(context) {
 			// Functions
 			
 			let startTimer = vscode.commands.registerCommand('chronus.startTimer', function () {
+				if(!mainInstance) {
+					return;
+				}
+
 				let removeCount = 0;		
 				timerIsRunning = true;
 				changeButtonCommand("chronus.pauseTimer");
@@ -212,7 +261,7 @@ function activate(context) {
 							getRow('current-time')
 							.then(res=> {
 								updateStatusBar(res.currentTime, '$(debug-pause)');
-								changeButtonCommand("chronus.notMain");
+								changeButtonCommand(undefined);
 							})
 		
 							if(removeCount === 0) {
@@ -232,6 +281,9 @@ function activate(context) {
 			});
 		
 			let pauseTimer = vscode.commands.registerCommand('chronus.pauseTimer', function() {
+				if(!mainInstance) {
+					return;
+				}
 				timerIsRunning = false;
 				updateStatusBar(time, '$(debug-start)', "Start");
 				changeButtonCommand("chronus.startTimer");
@@ -239,12 +291,13 @@ function activate(context) {
 			})
 		
 			let resetTimer = vscode.commands.registerCommand('chronus.resetTimer', function() {
-				if(mainInstance) {
-					hours = minutes = seconds = 0;
-					time = '00h 00m 00s';
-					vscode.commands.executeCommand('chronus.pauseTimer');
-					timerReset = true;
+				if(!mainInstance) {
+					return;
 				}
+				hours = minutes = seconds = 0;
+				time = '00h 00m 00s';
+				vscode.commands.executeCommand('chronus.pauseTimer');
+				timerReset = true;
 			})
 		
 			let showTimerLog = vscode.commands.registerCommand('chronus.showTimerLog', function() {
@@ -406,12 +459,6 @@ function activate(context) {
 				context.subscriptions.push(webViewElement);
 			})
 		
-			let notMain = vscode.commands.registerCommand('chronus.notMain', function () {
-				vscode.window.showInformationMessage('Timer manipulation is only avaiable on the main window.');
-				myStatusBarItem.tooltip = 'Disabled';
-				myStatusBarItem.accessibilityInfomation = 'Disabled';
-			})
-		
 			if(!runOnStartup && mainInstance) {
 				time = '00h 00m 00s';
 				updateStatusBar(time, '$(debug-start)', "Start");
@@ -448,7 +495,6 @@ function activate(context) {
 			context.subscriptions.push(resetTimer);
 			context.subscriptions.push(resetLogs);
 			context.subscriptions.push(showMoreOptions);
-			context.subscriptions.push(notMain);
 				}
 			})
 			.catch(err => {
@@ -458,11 +504,17 @@ function activate(context) {
 }
 
 function updateStatusBar(time, icon='$(debug-pause)', tooltipText) {
-	myStatusBarItem.text = `${icon} ${time}`;
-	myStatusBarItem.show();
-	myStatusBarItem.tooltip = (tooltipText) ? `Click To ${tooltipText}` : undefined;
-	myStatusBarItem.accessibilityInfomation = time;
-}
+	if(mainInstance) {
+		myStatusBarItem.text = `${icon} ${time}`;
+		myStatusBarItem.show();
+		myStatusBarItem.tooltip = (tooltipText) ? `Click To ${tooltipText}` : undefined;
+		myStatusBarItem.accessibilityInfomation = time;
+	}
+	else {
+		myStatusBarItem.text = time;
+		myStatusBarItem.tooltip = '';
+	}
+	}
 
 function changeButtonCommand(buttonCommand) {
 	myStatusBarItem.command = undefined;
