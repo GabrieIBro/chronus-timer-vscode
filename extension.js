@@ -13,7 +13,7 @@ let timer;
 let seconds = 0;
 let minutes = 0;
 let hours = 0;
-let time;			
+let time = '00h 00m 00s';			
 let date = new Date;
 let mainInstance = true;
 let instanceID = String(Math.random().toFixed(10)).slice(2);
@@ -43,7 +43,6 @@ function activate(context) {
 		
 				// Checks if lastInstance time has more than 1.5 second without being updated
 				if(res.lastInstance - Date.now() < -1500) {
-					console.log('RESEEEEEEEEEEEEEEEEEEEEEEEEEEEEET')
 					res.lastInstance = 0;
 					res.instanceStatus = {};
 					res.instances = {};
@@ -70,6 +69,7 @@ function activate(context) {
 			})
 	
 			myStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 2);
+			myStatusBarItem.text = '00h 00m 00s';
 			
 			statusBarMore = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1);
 			statusBarMore.text = `$(settings)`;
@@ -87,42 +87,45 @@ function activate(context) {
 			
 
 			let focusState;
-			setInterval(() => {
-				getRow('instance-data')
-				.then(res => {
-					res.instanceStatus[instanceID] = (vscode.window.state.focused) ? "focused" : "unfocused";
-					updateDB(res, 'instance-data');
-					focusState = Object.values(res.instanceStatus);
-				})
-			}, 100)
+
+			//Get current instance window state and store in the DB;
+			function focusPolling() {
+				return setInterval(() => {
+					getRow('instance-data')
+					.then(res => {
+						res.instanceStatus[instanceID] = (vscode.window.state.focused) ? "focused" : "unfocused";
+						updateDB(res, 'instance-data');
+						focusState = Object.values(res.instanceStatus);
+					})
+				}, 100)
+			}
 
 			// Check if window focus changed
 			function windowListener() {
 				return setInterval(() => {
 					// let event = vscode.window.state.focused;
-					getRow('instance-data')
-					.then(res => {
-						console.log(focusState);
-						let pause = !focusState.includes('focused');
-						// console.log(focus);
-						if(mainInstance) {
-							if(timerIsRunning && pause) {
-								vscode.commands.executeCommand("chronus.pauseTimer")
-							}
-							if(!pause && !timerIsRunning) {
-								vscode.commands.executeCommand("chronus.startTimer");
-							}
-							
+					let pause = !focusState.includes('focused');
+					// console.log(focus);
+					if(mainInstance) {
+						if(timerIsRunning && pause) {
+							vscode.commands.executeCommand("chronus.pauseTimer")
 						}
-					})
+						if(!pause && !timerIsRunning) {
+							vscode.commands.executeCommand("chronus.startTimer");
+						}
+						
+					}
+
 				}, 300)
 			}
 		
 			//Instantiate window listener if pauseWhenUnfocus === true;
 			let listener;
-		
+			let focusPollingInterval;
+
 			if(pauseWhenUnfocused) {
-				listener = windowListener()
+				listener = windowListener();
+				focusPollingInterval = focusPolling();
 			}
 		
 			function setCurrentDate() {
@@ -162,7 +165,12 @@ function activate(context) {
 
 				let removeCount = 0;		
 				timerIsRunning = true;
-				changeButtonCommand("chronus.pauseTimer");
+				if(!pauseWhenUnfocused) {
+					changeButtonCommand("chronus.pauseTimer");
+				}
+				else {
+					changeButtonCommand("chronus.pausePTWU");
+				}
 				
 				getRow('time-records')
 				.then(res => {
@@ -247,7 +255,6 @@ function activate(context) {
 						seconds += 1;	
 					}
 				}, 1000)
-		
 			});
 		
 			let pauseTimer = vscode.commands.registerCommand('chronus.pauseTimer', function() {
@@ -256,8 +263,14 @@ function activate(context) {
 				}
 				timerIsRunning = false;
 				updateStatusBar(time, '$(debug-start)', "Start");
-				changeButtonCommand("chronus.startTimer");
 				clearInterval(timer);
+
+				if(!pauseWhenUnfocused) {
+					changeButtonCommand("chronus.startTimer");
+				}
+				else {
+					changeButtonCommand("chronus.startPTWU");
+				}
 			})
 		
 			let resetTimer = vscode.commands.registerCommand('chronus.resetTimer', function() {
@@ -282,14 +295,14 @@ function activate(context) {
 				.then(res => {
 					let keys = Object.keys(res);
 		
-					let htmlContent = "";
+					let htmlContent = `	<main>
+										<h1>Summary</h1>`;
 		
 					keys.forEach(key => {
 		
 						if(key.includes('/')) {
 							htmlContent += `
-							<main>
-							<h1>Summary</h1>
+
 							
 							<details>
 							<summary>${[key]}</summary>
@@ -301,105 +314,107 @@ function activate(context) {
 									<ul><li>Session ${[index + 1]}: ${[el]}</li></ul>
 												`;
 							})
-							htmlContent += `
-							<style>
-								@import url('https://fonts.googleapis.com/css2?family=Signika:wght@300..700&display=swap');
-
-								main {
-									background-color: #292929;
-									display: flex;
-									flex-direction: column;
-									align-items:center;
-									border-radius: 15px;
-									padding:10px;
-									margin-top: 5px;
-									transition: height 100ms ease-out;
-									box-shadow: 5px 5px 20px #1c1c1c;
-									max-width: 700px;
-									margin-left: auto;
-									margin-right: auto;
-								}
-
-								div {
-									position: relative;
-									width: 100%;
-								}
-
-								details {
-									position: relative;
-									font-family:Signika, Garamond;
-									width: 100%;
-									border-radius: 15px;
-								}
-								
-								details[open] {
-									background-color: #303030;
-									padding-bottom: 15px;
-								}
-
-								details[open] > summary {
-									list-style-type: '';
-									background-color: #303030;
-								}
-								
-								details[open] > summary::after {
-									transform: rotate(225deg);
-								}
-
-								h1 {
-									font-size:28px; 
-									color: white;
-									margin-top: 0;
-									margin-bottom: 10px;
-									user-select: none;
-								}
-
-								li {
-									font-size:18px;
-									font-weight:400;
-									color:white;
-								}
-		
-								summary {
-									position: relative;
-									font-size:28px; 
-									font-weight:600;
-									user-select: none;
-									transition: ease-out 150ms;
-									color:white;
-									list-style-type: '';
-									width:100%;
-									height: 60px;
-    								display: flex;
-    								align-items: center;
-									border-radius: 15px;
-									text-indent: 15px;
-								}
-								
-								summary::after {
-									transform: rotate(45deg);
-									transition: 200ms ease-in-out;
-									content: "";
-									position:absolute;
-									right: 20px;
-									height:20px;
-									width:20px;
-									background-color: white;
-									clip-path: polygon(50% 0%,65.00% 0.00%,65.00% 65.00%,1.00% 65.00%,0% 50%,50% 50%);								}
-
-								summary:hover {
-									cursor:pointer;
-									background-color: #303030;
-		
-								}
-		
-							</style>
-							</details>
-							</main>`;
+							htmlContent += `</details>`
 						}
 						
 					});
-		
+					htmlContent += `
+					<style>
+						@import url('https://fonts.googleapis.com/css2?family=Signika:wght@300..700&display=swap');
+
+						main {
+							background-color: #292929;
+							display: flex;
+							flex-direction: column;
+							align-items:center;
+							border-radius: 15px;
+							padding:10px;
+							margin-top: 5px;
+							transition: height 100ms ease-out;
+							box-shadow: 5px 5px 20px #1c1c1c;
+							max-width: 700px;
+							margin-left: auto;
+							margin-right: auto;
+						}
+
+						div {
+							position: relative;
+							width: 100%;
+						}
+
+						details {
+							position: relative;
+							font-family:Signika, Garamond;
+							width: 100%;
+							border-radius: 15px;
+							margin-top: 5px;
+						}
+						
+						details[open] {
+							background-color: #303030;
+							padding-bottom: 15px;
+							margin-top: 5px;
+						}
+
+						details[open] > summary {
+							list-style-type: '';
+							background-color: #303030;
+						}
+						
+						details[open] > summary::after {
+							transform: rotate(225deg);
+						}
+
+						h1 {
+							font-size:28px; 
+							color: white;
+							margin-top: 0;
+							margin-bottom: 10px;
+							user-select: none;
+						}
+
+						li {
+							font-size:18px;
+							font-weight:400;
+							color:white;
+						}
+
+						summary {
+							position: relative;
+							font-size:28px; 
+							font-weight:600;
+							user-select: none;
+							transition: ease-out 150ms;
+							color:white;
+							list-style-type: '';
+							width:100%;
+							height: 60px;
+							display: flex;
+							align-items: center;
+							border-radius: 15px;
+							text-indent: 15px;
+						}
+						
+						summary::after {
+							transform: rotate(45deg);
+							transition: 200ms ease-in-out;
+							content: "";
+							position:absolute;
+							right: 20px;
+							height:20px;
+							width:20px;
+							background-color: white;
+							clip-path: polygon(50% 0%,65.00% 0.00%,65.00% 65.00%,1.00% 65.00%,0% 50%,50% 50%);								}
+
+						summary:hover {
+							cursor:pointer;
+							background-color: #303030;
+
+						}
+
+					</style>
+					</main>`;
+					
 					webViewElement.webview.html = htmlContent;
 					webViewElement.reveal();
 					
@@ -424,11 +439,28 @@ function activate(context) {
 					}
 				}})
 			
-			let showMoreOptions = vscode.commands.registerCommand('chronus.showMoreOptions', () => {
+			let showMoreOptions = vscode.commands.registerCommand('chronus.showMoreOptions', function() {
 				let webViewElement = vscode.window.createWebviewPanel();
 				context.subscriptions.push(webViewElement);
 			})
-		
+			
+			//PTWU = pauseTimerWhenUnfocused
+			let startPTWU = vscode.commands.registerCommand('chronus.startPTWU', function() {
+				vscode.commands.executeCommand('chronus.startTimer');
+				listener = windowListener('');
+				focusPollingInterval = focusPolling();
+				changeButtonCommand('chronus.pausePTWU');
+				console.log('Start')
+			})
+
+			let pausePTWU = vscode.commands.registerCommand('chronus.pausePTWU', function() {
+				vscode.commands.executeCommand('chronus.pauseTimer');
+				clearInterval(listener)
+				clearInterval(focusPollingInterval)
+				changeButtonCommand('chronus.startPTWU');
+				console.log('Pause')
+			})
+
 			if(!runOnStartup && mainInstance) {
 				time = '00h 00m 00s';
 				updateStatusBar(time, '$(debug-start)', "Start");
@@ -444,15 +476,31 @@ function activate(context) {
 				pauseWhenUnfocused = vscode.workspace.getConfiguration('chronus').get('pauseTimerWhenUnfocused');
 				if(pauseWhenUnfocused && !listener) {
 					listener = windowListener();
+					focusPollingInterval = focusPolling();
+
+					if(timerIsRunning) {
+						changeButtonCommand('chronus.pausePTWU');
+					}
+					else {
+						changeButtonCommand('chronus.startPTWU');
+					}
 				}
 		
 				if(!pauseWhenUnfocused){
-					listener.dispose();
+					clearInterval(listener);
+					clearInterval(focusPollingInterval);
 					listener = undefined;
+
+					if(timerIsRunning) {
+						changeButtonCommand("chronus.startTimer");
+					}
+					else {
+						changeButtonCommand("chronus.startTimer");
+					}
 				}
 			});
 			
-		
+
 			context.subscriptions.push(startTimer);
 			context.subscriptions.push(pauseTimer);
 			context.subscriptions.push(myStatusBarItem);
@@ -461,12 +509,14 @@ function activate(context) {
 			context.subscriptions.push(resetTimer);
 			context.subscriptions.push(resetLogs);
 			context.subscriptions.push(showMoreOptions);
-				}
+			context.subscriptions.push(startPTWU);
+			context.subscriptions.push(pausePTWU);
+
+			}
 			})
 			.catch(err => {
 				console.error(err);
 			})
-			
 }
 
 function updateStatusBar(time, icon='$(debug-pause)', tooltipText) {

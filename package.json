@@ -44,7 +44,16 @@
       {
         "command": "chronus.notMain",
         "title": "notMain"
+      },
+      {
+        "command": "chronus.startPTWU",
+        "title": "startPTWU"
+      },
+      {
+        "command": "chronus.pausePTWU",
+        "title": "pausePTWU"
       }
+
     ],
     "configuration": [
       {
@@ -85,6 +94,24 @@
           "command": "chronus.resetTimer",
           "group": "Chronus"
         }
+      ],
+      "commandPalette": [
+        {
+          "command": "chronus.pauseTimer",
+          "when": "false"
+        },
+        {
+          "command": "chronus.startTimer",
+          "when": "false"
+        },
+        {
+          "command": "chronus.pausePTWU",
+          "when": "false"
+        },
+        {
+          "command": "chronus.startPTWU",
+          "when": "false"
+        }
       ]
     }
   },
@@ -107,7 +134,6 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "sqlite3": "^5.1.7",
-    "x11": "^2.3.0"
+    "sqlite3": "^5.1.7"
   }
 }
