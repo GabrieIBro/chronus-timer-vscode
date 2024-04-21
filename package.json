@@ -111,6 +111,18 @@
         {
           "command": "chronus.startPTWU",
           "when": "false"
+        },
+        {
+          "command": "chronus.showTimerLog",
+          "when": "false"
+        },
+        {
+          "command": "chronus.resetLogs",
+          "when": "false"
+        },
+        {
+          "command": "chronus.resetTimer",
+          "when": "false"
         }
       ]
     }

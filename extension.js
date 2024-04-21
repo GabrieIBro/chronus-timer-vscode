@@ -65,7 +65,23 @@ function activate(context) {
 						updateDB(res, 'instance-data');
 					})
 					
-				}, 1000)
+				}, 500)
+
+				//Check if an instance has been terminated
+				setInterval(() => {
+					getRow('instance-data')
+					.then(res => {
+
+						for(let instance in res.instances) {
+							if(res.instances[instance] - Date.now() < -2000) {
+								delete res.instances[instance];
+								delete res.instanceStatus[instance];
+								updateDB(res, 'instance-data');
+							}
+						}
+						
+					}) 
+				}, 1500)
 			})
 	
 			myStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 2);
@@ -77,7 +93,6 @@ function activate(context) {
 			statusBarMore.command = 'chronus.showMoreOptions';
 			statusBarMore.show();
 			
-
 			let timerReset = false;
 			let session;
 			let dateTemplate;
@@ -105,7 +120,6 @@ function activate(context) {
 				return setInterval(() => {
 					// let event = vscode.window.state.focused;
 					let pause = !focusState.includes('focused');
-					// console.log(focus);
 					if(mainInstance) {
 						if(timerIsRunning && pause) {
 							vscode.commands.executeCommand("chronus.pauseTimer")
@@ -191,7 +205,6 @@ function activate(context) {
 							timerReset = false;
 						}
 						
-						// console.log(res);
 						res[dateTemplate][session - 1] = time;
 		
 						if(mainInstance) {
@@ -440,17 +453,28 @@ function activate(context) {
 				}})
 			
 			let showMoreOptions = vscode.commands.registerCommand('chronus.showMoreOptions', function() {
-				let webViewElement = vscode.window.createWebviewPanel();
-				context.subscriptions.push(webViewElement);
+				vscode.window.showInformationMessage(' Select an option:', 'Show Timer Logs', 
+				'Reset Timer', 'Clear Timer Logs')
+				.then(res => {
+					if(res === 'Show Timer Logs') {
+						vscode.commands.executeCommand('chronus.showTimerLog')
+					}
+					else if(res === 'Clear Timer Logs') {
+						vscode.commands.executeCommand('chronus.resetLogs')
+					}
+					else if(res === 'Reset Timer') {
+						vscode.commands.executeCommand('chronus.resetTimer')
+					}
+				})
+
 			})
 			
 			//PTWU = pauseTimerWhenUnfocused
 			let startPTWU = vscode.commands.registerCommand('chronus.startPTWU', function() {
 				vscode.commands.executeCommand('chronus.startTimer');
-				listener = windowListener('');
+				listener = windowListener();
 				focusPollingInterval = focusPolling();
 				changeButtonCommand('chronus.pausePTWU');
-				console.log('Start')
 			})
 
 			let pausePTWU = vscode.commands.registerCommand('chronus.pausePTWU', function() {
@@ -458,7 +482,6 @@ function activate(context) {
 				clearInterval(listener)
 				clearInterval(focusPollingInterval)
 				changeButtonCommand('chronus.startPTWU');
-				console.log('Pause')
 			})
 
 			if(!runOnStartup && mainInstance) {
