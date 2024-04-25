@@ -27,10 +27,16 @@ Enhance your time management and productivity with this extension. It assists yo
 * Error loading webview: If you encounter this error, restart VSCode.
 * Open an issue on [GitHub](https://github.com/GabrieIBro/chronus-timer-vscode) if you find any other problem.
 ## Release Notes
+* **1.1.1**\
+Bug fixes
+Added feature to track daily total work time
+ <br>
+
 * **1.1.0**\
 Bug fixes\
-Add new functions
+Added new functions
  <br>
+
 * **1.0.0**\
-Initial release.
+Initial release
 
