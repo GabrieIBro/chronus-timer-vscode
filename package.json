@@ -3,7 +3,7 @@
   "name": "chronus-timer",
   "displayName": "Chronus",
   "description": "A tool to help you keep track of how much time you spent coding.",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "icon": "./images/timer.png",
   "engines": {
     "vscode": "^1.87.0"
