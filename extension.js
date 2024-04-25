@@ -1,6 +1,7 @@
 "use strict"
 const vscode = require('vscode');
 const { newDB, getRow, updateDB, oldInstall } = require('./database')
+const sumTime = require('./sumTime');
 
 /**
  * @param {vscode.ExtensionContext} context
@@ -205,6 +206,16 @@ function activate(context) {
 							timerReset = false;
 						}
 						
+						// Update current date
+						date = new Date;
+
+						if(date.getDate() !== currentDate.day) {
+							hours = minutes = seconds = 0;
+							vscode.commands.executeCommand('chronus.pauseTimer');
+							setCurrentDate();
+							vscode.commands.executeCommand('chronus.startTimer');
+						}
+						
 						res[dateTemplate][session - 1] = time;
 		
 						if(mainInstance) {
@@ -214,13 +225,7 @@ function activate(context) {
 					.catch(err => {
 						console.log(err);
 					})
-		
-					// Update current date
-					if(date.getDate() !== currentDate.day) {
-						hours = minutes = seconds = 0;
-						setCurrentDate();
-					}
-		
+				
 					if(timerIsRunning) {
 						
 						if(seconds === 60){
@@ -316,12 +321,11 @@ function activate(context) {
 						if(key.includes('/')) {
 							htmlContent += `
 
-							
 							<details>
-							<summary>${[key]}</summary>
+							<summary><p>${[key]}</p> <p id="total">${sumTime(res[key])}</p></summary>
 
 											`;
-		
+														
 							res[key].forEach((el, index) => {
 								htmlContent += `
 									<ul><li>Session ${[index + 1]}: ${[el]}</li></ul>
@@ -406,6 +410,7 @@ function activate(context) {
 							align-items: center;
 							border-radius: 15px;
 							text-indent: 15px;
+							justify-content:space-between;
 						}
 						
 						summary::after {
@@ -425,6 +430,9 @@ function activate(context) {
 
 						}
 
+						#total {
+							margin-right: 60px;
+						}
 					</style>
 					</main>`;
 					
